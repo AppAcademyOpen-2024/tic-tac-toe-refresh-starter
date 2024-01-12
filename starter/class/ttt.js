@@ -2,14 +2,13 @@ const Screen = require("./screen");
 const Cursor = require("./cursor");
 
 class TTT {
-
   constructor() {
-
     this.playerTurn = "O";
-
-    this.grid = [[' ',' ',' '],
-                 [' ',' ',' '],
-                 [' ',' ',' ']]
+    this.grid = [
+      [' ', ' ', ' '],
+      [' ', ' ', ' '],
+      [' ', ' ', ' ']
+    ];
 
     this.cursor = new Cursor(3, 3);
 
@@ -18,23 +17,86 @@ class TTT {
     Screen.setGridlines(true);
 
     // Replace this with real commands
-    Screen.addCommand('t', 'test command (remove)', TTT.testCommand);
+    Screen.addCommand('up', 'up command', this.cursor.up.bind(this.cursor));
+    Screen.addCommand('down', 'down command', this.cursor.down.bind(this.cursor));
+    Screen.addCommand('left', 'left command', this.cursor.left.bind(this.cursor));
+    Screen.addCommand('right', 'right command', this.cursor.right.bind(this.cursor));
+    Screen.addCommand('return', 'make mark command', this.makeMark.bind(this));
 
     Screen.render();
   }
 
-  // Remove this
-  static testCommand() {
-    console.log("TEST COMMAND");
+  makeMark() {
+    const player = this.playerTurn;
+    const { row, col } = this.cursor;
+    const square = this.grid[row][col];
+
+    if (square === ' ') {
+      this.grid[row][col] = player;
+      Screen.setGrid(row, col, player);
+
+      if (TTT.checkWin(this.grid)) {
+        TTT.endGame(player);
+      }
+
+      this.playerTurn = player === 'O' ? 'X' : 'O';
+      Screen.render();
+    }
+  }
+
+  static checkRows(grid) {
+    let winner = false;
+    if (grid[0][0] !== ' ' && grid[0][0] === grid[0][1] && grid[0][1] === grid[0][2]) winner = grid[0][0];
+    if (grid[1][0] !== ' ' && grid[1][0] === grid[1][1] && grid[1][1] === grid[1][2]) winner = grid[1][0];
+    if (grid[2][0] !== ' ' && grid[2][0] === grid[2][1] && grid[2][1] === grid[2][2]) winner = grid[2][0];
+
+    return winner;
+  }
+
+  static checkCols(grid) {
+    let winner = false;
+    if (grid[0][0] !== ' ' && grid[0][0] === grid[1][0] && grid[1][0] === grid[2][0]) winner = grid[0][0];
+    if (grid[0][1] !== ' ' && grid[0][1] === grid[1][1] && grid[1][1] === grid[2][1]) winner = grid[0][1];
+    if (grid[0][2] !== ' ' && grid[0][2] === grid[1][2] && grid[1][2] === grid[2][2]) winner = grid[0][2];
+
+    return winner;
+  }
+
+  static checkDiags(grid) {
+    let winner = false;
+    if (grid[0][0] !== ' ' && grid[0][0] === grid[1][1] && grid[1][1] === grid[2][2]) winner = grid[0][0];
+    if (grid[2][0] !== ' ' && grid[2][0] === grid[1][1] && grid[1][1] === grid[0][2]) winner = grid[2][0];
+
+    return winner;
+  }
+
+  static getEmpties(grid) {
+    let empties = [];
+
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        if (grid[i][j] === ' ') {
+          empties.push(grid[i][j]);
+        }
+      }
+    }
+    return empties;
   }
 
   static checkWin(grid) {
+    let winner = false;
 
-    // Return 'X' if player X wins
-    // Return 'O' if player O wins
-    // Return 'T' if the game is a tie
-    // Return false if the game has not ended
+    // Horizontal
+    if (this.checkRows(grid)) winner = this.checkRows(grid);
+    // Vertical
+    if (this.checkCols(grid)) winner = this.checkCols(grid);
+    // Diagonal
+    if (this.checkDiags(grid)) winner = this.checkDiags(grid);
+    // Tie
+    const empties = this.getEmpties(grid);
+    if (empties.length === 0) winner = 'T';
 
+    return winner;
   }
 
   static endGame(winner) {
